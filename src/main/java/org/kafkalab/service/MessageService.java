@@ -1,5 +1,6 @@
 package org.kafkalab.service;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -39,10 +40,16 @@ public class MessageService {
 
     private final KafkaMessageProducer kafkaMessageProducer;
     private final KafkaMessageRepository kafkaMessageRepository;
+    private final Clock clock;
 
-    public MessageService(KafkaMessageProducer kafkaMessageProducer, KafkaMessageRepository kafkaMessageRepository) {
+    public MessageService(
+            KafkaMessageProducer kafkaMessageProducer,
+            KafkaMessageRepository kafkaMessageRepository,
+            Clock clock
+    ) {
         this.kafkaMessageProducer = kafkaMessageProducer;
         this.kafkaMessageRepository = kafkaMessageRepository;
+        this.clock = clock;
     }
 
     /**
@@ -58,7 +65,7 @@ public class MessageService {
 
         KafkaMessageEntity kafkaMessageEntity = new KafkaMessageEntity();
         kafkaMessageEntity.setData(message);
-        kafkaMessageEntity.setCreatedAt(Instant.now());
+        kafkaMessageEntity.setCreatedAt(Instant.now(clock));
 
         KafkaMessageEntity savedEntity = kafkaMessageRepository.save(kafkaMessageEntity);
 

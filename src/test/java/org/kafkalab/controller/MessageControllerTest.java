@@ -62,6 +62,14 @@ class MessageControllerTest {
     }
 
     @Test
+        void givenMissingField_whenPublishMessage_thenReturnsBadRequest() throws Exception {
+                mockMvc.perform(post("/api/messages")
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content("{}"))
+                                .andExpect(status().isBadRequest());
+        }
+
+        @Test
         void givenStoredMessages_whenListMessages_thenReturnsOkWithPayload() throws Exception {
                 when(messageService.listStoredMessages()).thenReturn(List.of(
                 new StoredMessageResponse(1L, "hello kafka", Instant.parse("2026-04-02T10:15:30Z"))

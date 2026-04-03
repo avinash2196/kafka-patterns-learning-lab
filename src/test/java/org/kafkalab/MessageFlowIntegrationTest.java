@@ -1,12 +1,15 @@
 package org.kafkalab;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.kafkalab.data.KafkaMessageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -28,6 +31,14 @@ class MessageFlowIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private KafkaMessageRepository kafkaMessageRepository;
+
+    @BeforeEach
+    void clearDatabase() {
+        kafkaMessageRepository.deleteAll();
+    }
+
     @Test
     void publishMessageShouldStoreMessageAndExposeItThroughReadEndpoint() throws Exception {
         mockMvc.perform(post("/api/messages")
@@ -42,4 +53,23 @@ class MessageFlowIntegrationTest {
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].data").value("integration message"));
     }
+
+            @Test
+            void publishingMultipleMessagesShouldReturnOrderedStoredRecords() throws Exception {
+            mockMvc.perform(post("/api/messages")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"data\":\"first\"}"))
+                .andExpect(status().isAccepted());
+
+            mockMvc.perform(post("/api/messages")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"data\":\"second\"}"))
+                .andExpect(status().isAccepted());
+
+            mockMvc.perform(get("/api/messages"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].data", is("first")))
+                .andExpect(jsonPath("$[1].data", is("second")));
+            }
 }
