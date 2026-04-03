@@ -1,30 +1,94 @@
 This repository is intended for learning, experimentation, and reference purposes. It is not designed as a production-grade system.
 
-# Spring Kafka Learning Lab
+# Kafka Learning Lab
 
-An educational Spring Boot project that demonstrates a complete publish and consume workflow using Kafka, with a local H2 mirror for easy inspection.
+Professional learning/reference project for understanding REST-to-Kafka data flow, service-layer design, and testable Spring Boot architecture using kafka-learning-lab conventions.
 
 ## Overview
 
-This repository shows a simple but realistic learning flow:
+### What this project does
 
-1. A REST endpoint accepts a message payload.
-2. The service publishes it to Kafka.
-3. The same value is stored in H2 for easy querying.
-4. A Kafka listener consumes records and logs metadata.
+This project exposes a REST API that accepts a message payload, publishes it to Kafka, stores a mirror copy in H2, and allows retrieval of stored records through a read endpoint.
 
-The project is intentionally compact so developers can understand each moving part quickly.
+### Why this problem is relevant in real-world systems
 
-## What this repo demonstrates
+Many production systems use asynchronous messaging to decouple services and improve resilience. Understanding how an API request becomes a durable event is a core engineering skill for event-driven architectures.
 
-- Spring Boot application layering: controller, service, stream, repository
-- Kafka producer integration using `KafkaTemplate`
-- Kafka consumer integration using `@KafkaListener`
-- Request validation with Bean Validation
-- Simple persistence with Spring Data JPA and H2
-- Unit, web-layer, and integration tests (with embedded Kafka)
+## Real-World Context
 
-## Tech stack
+### Where this concept is used
+
+- Event-driven microservices that publish business events (order-created, payment-received, shipment-dispatched)
+- CDC/event pipelines where upstream systems expose domain changes through Kafka
+- Analytics ingestion where operational APIs emit events consumed by downstream processors
+
+### Example use cases
+
+- Ecommerce checkout service publishes order events for inventory, billing, and notifications
+- Fintech transaction API publishes audit/compliance events to independent consumers
+- Platform teams centralize event streams to power near-real-time dashboards
+
+## What This Repo Demonstrates
+
+- Clean layered architecture: controller, service, stream, repository, model
+- Synchronous request handling combined with asynchronous event publishing
+- Kafka producer and consumer setup in Spring Boot
+- Typed configuration and validation at API boundaries
+- Local persistence for observability during learning
+- Unit, web-layer, and integration testing patterns
+
+## Architecture / Flow
+
+### Component responsibilities
+
+- MessageController: handles HTTP requests and validation boundary
+- MessageService: orchestrates publish and persist workflow
+- KafkaMessageProducer: encapsulates KafkaTemplate send behavior
+- KafkaMessageConsumer: demonstrates consumer-group-based message handling
+- KafkaMessageRepository: provides deterministic read ordering from H2
+
+### Request lifecycle
+
+1. Client sends POST to /api/messages
+2. Controller validates payload
+3. Service publishes payload to the configured Kafka topic (default: `companies`, set via `learning-lab.kafka.topic-name`)
+4. Service stores the same payload in H2
+5. Consumer receives event asynchronously and logs metadata
+6. Client can GET /api/messages to inspect stored records
+
+### Flow diagram
+
+Client
+  |
+  v
+MessageController
+  |
+  v
+MessageService
+  |------------------> KafkaMessageProducer ----> Kafka Topic (configurable via learning-lab.kafka.topic-name, default: companies)
+  |
+  v
+KafkaMessageRepository ----> H2 (in-memory)
+  |
+  v
+GET /api/messages response
+
+KafkaMessageConsumer <---- Kafka Topic (configurable via learning-lab.kafka.topic-name, default: companies)
+
+### Design and trade-off notes
+
+- Publish-then-persist order keeps the learning flow explicit and easy to reason about
+- REST entrypoint is synchronous for simplicity; event consumption is asynchronous
+- In-memory H2 improves local feedback speed but does not preserve data across restarts
+- Consumer behavior is intentionally log-focused rather than side-effect heavy to keep concepts clear
+
+### Scalability considerations (simplified)
+
+- Kafka partitions allow horizontal consumer scaling in real systems
+- Consumer group semantics prevent duplicate processing inside one group
+- For production, this flow would add retries, dead-letter handling, and idempotency controls
+
+## Tech Stack
 
 - Java 17
 - Spring Boot 2.7.x
@@ -35,17 +99,16 @@ The project is intentionally compact so developers can understand each moving pa
 - Gradle
 - JUnit 5, Mockito, MockMvc, spring-kafka-test
 
-## Project structure
+## Project Structure
 
-```text
 src/
   main/
     java/org/kafkalab/
       config/       Typed tutorial configuration
       controller/   REST API endpoints
-      data/         Spring Data JPA repository interfaces
+      data/         Spring Data repository interfaces
       model/        Request/response DTOs and JPA entity
-      service/      Application workflow orchestration
+      service/      Business workflow orchestration
       stream/       Kafka producer and consumer components
     resources/
       application.yml
@@ -60,19 +123,19 @@ settings.gradle
 compose.yml
 README.md
 LICENSE
-```
 
-## How to run locally
+## How to Run Locally
 
 ### Prerequisites
 
 - Java 17
-- Kafka broker reachable at `localhost:9092`
+- Kafka reachable on localhost:9092
 
-### Option A: Run Kafka with Docker (when virtualization is available)
+### Option A: Start Kafka with Docker (if virtualization is available)
 
 ```powershell
 docker compose up -d
+docker compose ps
 ```
 
 Stop later:
@@ -81,7 +144,7 @@ Stop later:
 docker compose down
 ```
 
-### Option B: Run Kafka natively on Windows (recommended fallback)
+### Optional: Advanced Setup for Native Kafka on Windows
 
 1. Download and extract Kafka:
 
@@ -99,107 +162,89 @@ $clusterId = & "C:\kfk\kafka_2.13-3.7.2\bin\windows\kafka-storage.bat" random-uu
 & "C:\kfk\kafka_2.13-3.7.2\bin\windows\kafka-storage.bat" format -t $clusterId.Trim() -c "C:\kfk\kafka_2.13-3.7.2\config\kraft\server.properties"
 ```
 
-3. Start Kafka broker:
+3. Start broker:
 
 ```powershell
 $env:KAFKA_HEAP_OPTS = "-Xmx1G -Xms1G"
 & "C:\kfk\kafka_2.13-3.7.2\bin\windows\kafka-server-start.bat" "C:\kfk\kafka_2.13-3.7.2\config\kraft\server.properties"
 ```
 
-4. (Optional) Pre-create topic used by the app:
+4. Optional topic creation:
 
 ```powershell
 & "C:\kfk\kafka_2.13-3.7.2\bin\windows\kafka-topics.bat" --bootstrap-server localhost:9092 --create --topic companies --partitions 1 --replication-factor 1
 ```
 
-### Build the project
+### Build
 
-macOS/Linux:
+- macOS/Linux: ./gradlew clean build
+- Windows: .\gradlew.bat clean build
 
-```bash
-./gradlew clean build
-```
+### Run application
 
-Windows PowerShell:
+- macOS/Linux: ./gradlew bootRun
+- Windows: .\gradlew.bat bootRun
 
-```powershell
-.\gradlew.bat clean build
-```
+If port 8080 is occupied:
 
-### Run the application
+- .\gradlew.bat bootRun --args='--server.port=8081'
 
-macOS/Linux:
+## How to Run Tests
 
-```bash
-./gradlew bootRun
-```
+- macOS/Linux: ./gradlew test
+- Windows: .\gradlew.bat clean test
 
-Windows PowerShell:
+Test suite includes:
 
-```powershell
-.\gradlew.bat bootRun
-```
+- Unit tests for service and producer logic
+- Web-layer tests for controller behavior
+- Embedded-Kafka integration test for end-to-end wiring
 
-If `8080` is occupied:
+## Example Usage
 
-```powershell
-.\gradlew.bat bootRun --args='--server.port=8081'
-```
-
-## How to run tests
-
-macOS/Linux:
-
-```bash
-./gradlew test
-```
-
-Windows PowerShell:
-
-```powershell
-.\gradlew.bat clean test
-```
-
-Tests include unit tests, web-layer tests, and an embedded Kafka integration test.
-
-## Example usage / API examples / flows
-
-### Publish a message
+### Publish message
 
 ```powershell
 Invoke-RestMethod -Method Post -Uri "http://localhost:8080/api/messages" -ContentType "application/json" -Body '{"data":"hello kafka"}'
 ```
 
-### Read stored messages
+### Read messages
 
 ```powershell
 Invoke-RestMethod -Method Get -Uri "http://localhost:8080/api/messages"
 ```
 
-### End-to-end flow
+### Suggested verification sequence
 
-1. POST message payload to `/api/messages`.
-2. Service publishes to Kafka topic `companies`.
-3. Service stores mirror record in H2.
-4. Listener consumes record and logs partition/offset.
-5. GET `/api/messages` returns stored records.
+1. Start Kafka
+2. Run app
+3. POST one message
+4. GET messages and confirm persisted output
 
-## Learning outcomes
+## Learning Outcomes
 
-After completing this repository, you should be able to:
+By completing this lab, a developer should be able to:
 
-- Explain how Spring Kafka producer and consumer components are wired
-- Build a simple HTTP-to-Kafka publish workflow
-- Keep code organized with clear controller/service/repository boundaries
-- Use embedded Kafka tests for repeatable local verification
-- Validate Kafka-backed behavior without production infrastructure complexity
+- Explain API-to-event data flow in a layered Spring application
+- Implement a basic producer/consumer workflow with Kafka
+- Structure code around clear component responsibilities
+- Write tests at unit, web, and integration levels
+- Discuss trade-offs between synchronous APIs and asynchronous messaging
 
 ## Limitations
 
-- This project is intentionally not production-ready.
-- No retries, dead-letter topics, schema registry, auth, or observability stack are included.
-- H2 data is in-memory and resets on restart.
-- Error handling is intentionally lightweight for teaching clarity.
+- This project is not production-ready by design
+- No schema registry, auth, retries, DLQ, observability stack, or outbox pattern
+- Local H2 storage is ephemeral
+- Error handling and operational concerns are intentionally simplified
+
+## Future Improvements
+
+- Add structured error responses and centralized exception handling
+- Add outbox pattern variant for stronger consistency guarantees
+- Add idempotent consumer example and retry/DLQ demonstration
+- Add metrics and tracing examples (Micrometer/OpenTelemetry)
+- Add contract tests for event payload evolution
 
 ## License
 This project is licensed under the MIT License - see the LICENSE file for details.
