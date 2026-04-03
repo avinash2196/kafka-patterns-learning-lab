@@ -1,29 +1,52 @@
 package org.kafkalab.stream;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.kafkalab.model.KafkaMessage;
+import org.kafkalab.config.KafkaLabProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 /**
- * Produces {@link KafkaMessage} events to the demo Kafka topic.
+ * Sends messages to the configured Kafka topic.
+ *
+ * <p>This class keeps the Kafka-specific publishing code in one place so the rest of the tutorial
+ * can stay focused on application flow.</p>
+ *
+ * <p>Learning Notes:</p>
+ * <ul>
+ *   <li>{@link KafkaTemplate} is Spring Kafka's high-level abstraction for producing records.</li>
+ *   <li>The topic name comes from configuration so learners can experiment without changing code.</li>
+ * </ul>
  */
 @Component
-@RequiredArgsConstructor
-@Slf4j
 public class KafkaMessageProducer {
-    private static final String TOPIC_NAME = "companies";
 
-    private final KafkaTemplate<String, KafkaMessage> kafkaTemplate;
+    private static final Logger log = LoggerFactory.getLogger(KafkaMessageProducer.class);
+
+    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final KafkaLabProperties kafkaLabProperties;
+
+    public KafkaMessageProducer(KafkaTemplate<String, String> kafkaTemplate, KafkaLabProperties kafkaLabProperties) {
+        this.kafkaTemplate = kafkaTemplate;
+        this.kafkaLabProperties = kafkaLabProperties;
+    }
 
     /**
      * Sends a message to the configured topic.
      *
      * @param message payload to publish
      */
-    public void sendToTopic(KafkaMessage message) {
+    public void sendToTopic(String message) {
         log.info("Outgoing Message - Producing -> {}", message);
-        kafkaTemplate.send(TOPIC_NAME, message);
+        kafkaTemplate.send(kafkaLabProperties.getTopicName(), message);
+    }
+
+    /**
+     * Returns the configured topic name for response messages and documentation.
+     *
+     * @return configured topic name
+     */
+    public String getTopicName() {
+        return kafkaLabProperties.getTopicName();
     }
 }

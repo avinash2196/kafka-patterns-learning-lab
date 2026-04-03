@@ -1,22 +1,35 @@
 spring:
   kafka:
+    bootstrap-servers: localhost:9092
+    listener:
+      missing-topics-fatal: false
     consumer:
-      # Local Kafka broker endpoint used for demo runs.
-      bootstrap-servers: localhost:9092
-      # Consumer group controls how messages are shared among consumers.
-      group-id: group_id
-      # Start from earliest offset so learners can replay topic history.
+      group-id: ${learning-lab.kafka.consumer-group-id}
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
     producer:
-      bootstrap-servers: localhost:9092
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
   datasource:
-    url:  jdbc:h2:mem:testDatabase
+    url: jdbc:h2:mem:kafkalab;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
   jpa:
+    hibernate:
+      ddl-auto: update
     show-sql: true
+    database-platform: org.hibernate.dialect.H2Dialect
+    properties:
+      hibernate:
+        format_sql: true
   h2:
     console:
-      enabled:  true
+      enabled: true
+      path: /h2-console
+
+learning-lab:
+  kafka:
+    topic-name: companies
+    consumer-group-id: kafka-learning-lab-group

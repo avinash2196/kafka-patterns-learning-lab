@@ -1,99 +1,205 @@
-# Kafka Patterns Learning Lab
+This repository is intended for learning, experimentation, and reference purposes. It is not designed as a production-grade system.
 
-**Disclaimer:** This is a learning/demo repository for Kafka fundamentals.
+# Spring Kafka Learning Lab
+
+An educational Spring Boot project that demonstrates a complete publish and consume workflow using Kafka, with a local H2 mirror for easy inspection.
 
 ## Overview
-Kafka Patterns Learning Lab is a small Spring Boot project built to help you understand core Kafka ideas through runnable code.
-It is intentionally simple and focuses on learning flow, terminology, and behavior instead of production-scale architecture.
 
-## Kafka concepts covered
-- **Topic**: A named stream/channel where messages are written.
-- **Partition**: A topic is split into partitions so Kafka can scale reads/writes.
-- **Offset**: The position number of a message inside a partition.
-- **Producer**: The component that sends messages to a topic.
-- **Consumer group**: A set of consumers that share work for a topic.
-- **Rebalance**: Kafka redistributes partitions among consumers when group membership changes.
+This repository shows a simple but realistic learning flow:
 
-## Architecture summary
-- REST endpoint receives a JSON payload.
-- Service layer forwards payload to Kafka via a producer.
-- Message is also stored in an in-memory H2 table for easy inspection.
-- Kafka consumer listens to the same topic and logs incoming messages.
+1. A REST endpoint accepts a message payload.
+2. The service publishes it to Kafka.
+3. The same value is stored in H2 for easy querying.
+4. A Kafka listener consumes records and logs metadata.
+
+The project is intentionally compact so developers can understand each moving part quickly.
+
+## What this repo demonstrates
+
+- Spring Boot application layering: controller, service, stream, repository
+- Kafka producer integration using `KafkaTemplate`
+- Kafka consumer integration using `@KafkaListener`
+- Request validation with Bean Validation
+- Simple persistence with Spring Data JPA and H2
+- Unit, web-layer, and integration tests (with embedded Kafka)
 
 ## Tech stack
-- Java 17+
+
+- Java 17
 - Spring Boot 2.7.x
-- Spring Kafka
 - Spring Web
+- Spring Kafka
 - Spring Data JPA
-- H2 Database (in-memory)
+- H2 in-memory database
 - Gradle
+- JUnit 5, Mockito, MockMvc, spring-kafka-test
 
-## How to run
-### 1) Start Kafka locally
-You can use Docker, local binaries, or any local Kafka setup. Ensure Kafka is reachable at `localhost:9092`.
+## Project structure
 
-### 2) Start the application
-From the project root:
+```text
+src/
+  main/
+    java/org/kafkalab/
+      config/       Typed tutorial configuration
+      controller/   REST API endpoints
+      data/         Spring Data JPA repository interfaces
+      model/        Request/response DTOs and JPA entity
+      service/      Application workflow orchestration
+      stream/       Kafka producer and consumer components
+    resources/
+      application.yml
+  test/
+    java/org/kafkalab/
+      controller/   Web layer tests
+      service/      Service unit tests
+      stream/       Producer unit tests
+      MessageFlowIntegrationTest.java
+build.gradle
+settings.gradle
+compose.yml
+README.md
+LICENSE
+```
+
+## How to run locally
+
+### Prerequisites
+
+- Java 17
+- Kafka broker reachable at `localhost:9092`
+
+### Option A: Run Kafka with Docker (when virtualization is available)
+
+```powershell
+docker compose up -d
+```
+
+Stop later:
+
+```powershell
+docker compose down
+```
+
+### Option B: Run Kafka natively on Windows (recommended fallback)
+
+1. Download and extract Kafka:
+
+```powershell
+$root = "C:\kfk"
+New-Item -ItemType Directory -Path $root -Force | Out-Null
+curl.exe -k -L "https://archive.apache.org/dist/kafka/3.7.2/kafka_2.13-3.7.2.tgz" -o "$root\kafka_2.13-3.7.2.tgz"
+tar -xzf "$root\kafka_2.13-3.7.2.tgz" -C $root
+```
+
+2. Initialize KRaft metadata (one-time):
+
+```powershell
+$clusterId = & "C:\kfk\kafka_2.13-3.7.2\bin\windows\kafka-storage.bat" random-uuid
+& "C:\kfk\kafka_2.13-3.7.2\bin\windows\kafka-storage.bat" format -t $clusterId.Trim() -c "C:\kfk\kafka_2.13-3.7.2\config\kraft\server.properties"
+```
+
+3. Start Kafka broker:
+
+```powershell
+$env:KAFKA_HEAP_OPTS = "-Xmx1G -Xms1G"
+& "C:\kfk\kafka_2.13-3.7.2\bin\windows\kafka-server-start.bat" "C:\kfk\kafka_2.13-3.7.2\config\kraft\server.properties"
+```
+
+4. (Optional) Pre-create topic used by the app:
+
+```powershell
+& "C:\kfk\kafka_2.13-3.7.2\bin\windows\kafka-topics.bat" --bootstrap-server localhost:9092 --create --topic companies --partitions 1 --replication-factor 1
+```
+
+### Build the project
+
+macOS/Linux:
+
+```bash
+./gradlew clean build
+```
+
+Windows PowerShell:
+
+```powershell
+.\gradlew.bat clean build
+```
+
+### Run the application
+
+macOS/Linux:
 
 ```bash
 ./gradlew bootRun
 ```
 
-On Windows PowerShell:
+Windows PowerShell:
 
 ```powershell
 .\gradlew.bat bootRun
 ```
 
-### 3) Send a test message
-
-```bash
-curl -X POST http://localhost:8080/kafka/send \
-	-H "Content-Type: application/json" \
-	-d '{"data":"hello kafka"}'
-```
-
-PowerShell example:
+If `8080` is occupied:
 
 ```powershell
-Invoke-RestMethod -Method Post -Uri "http://localhost:8080/kafka/send" -ContentType "application/json" -Body '{"data":"hello kafka"}'
+.\gradlew.bat bootRun --args='--server.port=8081'
 ```
 
-## View Javadocs
-Generate API docs from source comments:
+## How to run tests
+
+macOS/Linux:
 
 ```bash
-./gradlew javadoc
+./gradlew test
 ```
 
-On Windows PowerShell:
+Windows PowerShell:
 
 ```powershell
-.\gradlew.bat javadoc
+.\gradlew.bat clean test
 ```
 
-Open `build/docs/javadoc/index.html` in your browser to browse class and method documentation.
+Tests include unit tests, web-layer tests, and an embedded Kafka integration test.
 
-## Example message flow
-1. You POST `{ "data": "hello kafka" }` to `/kafka/send`.
-2. The controller calls the service.
-3. The service publishes the message to topic `companies`.
-4. The same payload is saved to H2 for learning visibility.
-5. Consumer group `group_id` reads from the topic and logs message + metadata.
+## Example usage / API examples / flows
 
-## Key learning points
-- Producer and consumer can run independently using Kafka as the transport layer.
-- Offsets are tracked per partition and per consumer group.
-- Rebalance events can move partition ownership between consumers.
-- Serialization matters: producer/consumer payload types must match.
-- Local experiments are easiest with small payloads and clear logs.
+### Publish a message
+
+```powershell
+Invoke-RestMethod -Method Post -Uri "http://localhost:8080/api/messages" -ContentType "application/json" -Body '{"data":"hello kafka"}'
+```
+
+### Read stored messages
+
+```powershell
+Invoke-RestMethod -Method Get -Uri "http://localhost:8080/api/messages"
+```
+
+### End-to-end flow
+
+1. POST message payload to `/api/messages`.
+2. Service publishes to Kafka topic `companies`.
+3. Service stores mirror record in H2.
+4. Listener consumes record and logs partition/offset.
+5. GET `/api/messages` returns stored records.
+
+## Learning outcomes
+
+After completing this repository, you should be able to:
+
+- Explain how Spring Kafka producer and consumer components are wired
+- Build a simple HTTP-to-Kafka publish workflow
+- Keep code organized with clear controller/service/repository boundaries
+- Use embedded Kafka tests for repeatable local verification
+- Validate Kafka-backed behavior without production infrastructure complexity
 
 ## Limitations
-- Not production-hardened (no retries, no dead-letter topic, limited error handling).
-- Single-topic, single-use-case sample for clarity.
-- In-memory H2 storage is temporary.
-- Security, monitoring, and scaling concerns are intentionally out of scope.
+
+- This project is intentionally not production-ready.
+- No retries, dead-letter topics, schema registry, auth, or observability stack are included.
+- H2 data is in-memory and resets on restart.
+- Error handling is intentionally lightweight for teaching clarity.
 
 ## License
-This project is released under the MIT License and is free to use for learning purposes.
+This project is licensed under the MIT License - see the LICENSE file for details.
