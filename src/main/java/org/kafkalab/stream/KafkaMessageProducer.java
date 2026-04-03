@@ -17,6 +17,12 @@ import org.springframework.stereotype.Component;
  *   <li>{@link KafkaTemplate} is Spring Kafka's high-level abstraction for producing records.</li>
  *   <li>The topic name comes from configuration so learners can experiment without changing code.</li>
  * </ul>
+ *
+ * <p>Design Notes:</p>
+ * <ul>
+ *   <li>Kafka send logic is isolated to reduce coupling between service orchestration and broker APIs.</li>
+ *   <li>This sample uses fire-and-forget semantics for clarity; production systems often inspect send callbacks.</li>
+ * </ul>
  */
 @Component
 public class KafkaMessageProducer {

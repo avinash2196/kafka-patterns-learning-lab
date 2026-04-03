@@ -18,6 +18,12 @@ import org.springframework.stereotype.Component;
  *   <li>{@code @KafkaListener} creates a listener container behind the scenes.</li>
  *   <li>Headers such as partition and offset help explain how Kafka tracks records.</li>
  * </ul>
+ *
+ * <p>Design Notes:</p>
+ * <ul>
+ *   <li>The consumer is intentionally side-effect-light to keep the asynchronous model easy to reason about.</li>
+ *   <li>In production, listener methods would include retries, dead-letter handling, and idempotency strategies.</li>
+ * </ul>
  */
 @Component
 public class KafkaMessageConsumer {

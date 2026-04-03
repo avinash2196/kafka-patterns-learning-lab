@@ -16,6 +16,12 @@ import org.springframework.validation.annotation.Validated;
  *   <li>{@code @ConfigurationProperties} maps hierarchical YAML properties into a typed object.</li>
  *   <li>Validation prevents the application from starting with missing tutorial settings.</li>
  * </ul>
+ *
+ * <p>Design Notes:</p>
+ * <ul>
+ *   <li>Separating app-domain properties from framework defaults improves readability and change safety.</li>
+ *   <li>Fail-fast validation is chosen over runtime null checks to surface configuration mistakes early.</li>
+ * </ul>
  */
 @Validated
 @ConfigurationProperties(prefix = "learning-lab.kafka")

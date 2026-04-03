@@ -1,8 +1,8 @@
 This repository is intended for learning, experimentation, and reference purposes. It is not designed as a production-grade system.
 
-# Spring Kafka Learning Lab
+# Kafka Learning Lab
 
-Professional learning/reference project for understanding REST-to-Kafka data flow, service-layer design, and testable Spring Boot architecture.
+Professional learning/reference project for understanding REST-to-Kafka data flow, service-layer design, and testable Spring Boot architecture using kafka-learning-lab conventions.
 
 ## Overview
 
@@ -133,39 +133,47 @@ LICENSE
 
 ### Option A: Start Kafka with Docker (if virtualization is available)
 
-1. docker compose up -d
-2. docker compose ps
+```powershell
+docker compose up -d
+docker compose ps
+```
 
 Stop later:
 
-1. docker compose down
+```powershell
+docker compose down
+```
 
-### Option B: Start Kafka natively on Windows
+### Optional: Advanced Setup for Native Kafka on Windows
 
 1. Download and extract Kafka:
 
-   - PowerShell command:
-     $root = "C:\kfk"
-     New-Item -ItemType Directory -Path $root -Force | Out-Null
-     curl.exe -k -L "https://archive.apache.org/dist/kafka/3.7.2/kafka_2.13-3.7.2.tgz" -o "$root\kafka_2.13-3.7.2.tgz"
-     tar -xzf "$root\kafka_2.13-3.7.2.tgz" -C $root
+```powershell
+$root = "C:\kfk"
+New-Item -ItemType Directory -Path $root -Force | Out-Null
+curl.exe -k -L "https://archive.apache.org/dist/kafka/3.7.2/kafka_2.13-3.7.2.tgz" -o "$root\kafka_2.13-3.7.2.tgz"
+tar -xzf "$root\kafka_2.13-3.7.2.tgz" -C $root
+```
 
 2. Initialize KRaft metadata (one-time):
 
-   - PowerShell command:
-     $clusterId = & "C:\kfk\kafka_2.13-3.7.2\bin\windows\kafka-storage.bat" random-uuid
-     & "C:\kfk\kafka_2.13-3.7.2\bin\windows\kafka-storage.bat" format -t $clusterId.Trim() -c "C:\kfk\kafka_2.13-3.7.2\config\kraft\server.properties"
+```powershell
+$clusterId = & "C:\kfk\kafka_2.13-3.7.2\bin\windows\kafka-storage.bat" random-uuid
+& "C:\kfk\kafka_2.13-3.7.2\bin\windows\kafka-storage.bat" format -t $clusterId.Trim() -c "C:\kfk\kafka_2.13-3.7.2\config\kraft\server.properties"
+```
 
 3. Start broker:
 
-   - PowerShell command:
-     $env:KAFKA_HEAP_OPTS = "-Xmx1G -Xms1G"
-     & "C:\kfk\kafka_2.13-3.7.2\bin\windows\kafka-server-start.bat" "C:\kfk\kafka_2.13-3.7.2\config\kraft\server.properties"
+```powershell
+$env:KAFKA_HEAP_OPTS = "-Xmx1G -Xms1G"
+& "C:\kfk\kafka_2.13-3.7.2\bin\windows\kafka-server-start.bat" "C:\kfk\kafka_2.13-3.7.2\config\kraft\server.properties"
+```
 
 4. Optional topic creation:
 
-   - PowerShell command:
-     & "C:\kfk\kafka_2.13-3.7.2\bin\windows\kafka-topics.bat" --bootstrap-server localhost:9092 --create --topic companies --partitions 1 --replication-factor 1
+```powershell
+& "C:\kfk\kafka_2.13-3.7.2\bin\windows\kafka-topics.bat" --bootstrap-server localhost:9092 --create --topic companies --partitions 1 --replication-factor 1
+```
 
 ### Build
 
@@ -196,13 +204,15 @@ Test suite includes:
 
 ### Publish message
 
-- PowerShell:
-  Invoke-RestMethod -Method Post -Uri "http://localhost:8080/api/messages" -ContentType "application/json" -Body '{"data":"hello kafka"}'
+```powershell
+Invoke-RestMethod -Method Post -Uri "http://localhost:8080/api/messages" -ContentType "application/json" -Body '{"data":"hello kafka"}'
+```
 
 ### Read messages
 
-- PowerShell:
-  Invoke-RestMethod -Method Get -Uri "http://localhost:8080/api/messages"
+```powershell
+Invoke-RestMethod -Method Get -Uri "http://localhost:8080/api/messages"
+```
 
 ### Suggested verification sequence
 
